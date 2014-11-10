@@ -31,6 +31,7 @@ from w3af.core.controllers.configurable import Configurable
 from w3af.core.controllers.threads.threadpool import return_args
 from w3af.core.controllers.exceptions import HTTPRequestException
 from w3af.core.controllers.misc.decorators import memoized
+from w3af.core.data.url.helpers import new_no_content_resp
 
 
 class Plugin(Configurable):
@@ -48,7 +49,7 @@ class Plugin(Configurable):
 
     def __init__(self):
         """
-        Create some generic attributes that are going to be used by most plugins.
+        Create some generic attributes that are going to be used by most plugins
         """
         self._uri_opener = None
         self.worker_pool = None
@@ -167,24 +168,6 @@ class Plugin(Configurable):
     def get_name(self):
         return self.__class__.__name__
 
-    def handle_url_error(self, http_exception):
-        """
-        Handle UrlError exceptions raised when requests are made.
-        Subclasses should redefine this method for a more refined
-        behavior and must respect the return value format.
-
-        :param http_exception: HTTPRequestException exception instance
-        :return: (stop_bubbling, result). The 1st is a boolean value
-            that indicates the caller if the original error should
-            stop bubbling or not. The 2nd is the result to be
-            returned by the caller. Note that only makes sense
-            when `stop_bubbling` is True.
-        """
-        msg = 'The %s plugin got an error while requesting "%s". Reason: "%s"'
-        args = (self.get_name(), http_exception.get_url(), http_exception)
-        om.out.error(msg % args)
-        return False, None
-
     def _send_mutants_in_threads(self, func, iterable, callback, **kwds):
         """
         Please note that this method blocks from the caller's point of view
@@ -203,6 +186,27 @@ class Plugin(Configurable):
 
         for (mutant,), http_response in imap_unordered(func, iterable):
             callback(mutant, http_response)
+
+    def handle_url_error(self, uri, http_exception):
+        """
+        Handle UrlError exceptions raised when requests are made.
+        Subclasses should redefine this method for a more refined
+        behavior and must respect the return value format.
+
+        :param http_exception: HTTPRequestException exception instance
+
+        :return: A tuple containing:
+            * re_raise: Boolean value that indicates the caller if the original
+                        exception should be re-raised after this error handling
+                        method.
+
+            * result: The result to be returned to the caller. This only makes
+                      sense if re_raise is False.
+        """
+        msg = 'The %s plugin got an error while requesting "%s". Reason: "%s"'
+        args = (self.get_name(), uri, http_exception)
+        om.out.error(msg % args)
+        return False, new_no_content_resp(uri)
 
 
 class UrlOpenerProxy(object):
@@ -226,9 +230,12 @@ class UrlOpenerProxy(object):
                 # type of exception (not a subclass of HTTPRequestException)
                 # and that one will bubble up to w3afCore/strategy/etc.
                 #
-                stop_bubbling, result = self._plugin_inst.handle_url_error(hre)
+                uri = args[0]
+                re_raise, result = self._plugin_inst.handle_url_error(uri, hre)
 
-                if not stop_bubbling:
+                # By default we do NOT re-raise, we just return a 204-no content
+                # response and hope for the best.
+                if re_raise:
                     exc_info = sys.exc_info()
                     raise exc_info[0], exc_info[1], exc_info[2]
 
