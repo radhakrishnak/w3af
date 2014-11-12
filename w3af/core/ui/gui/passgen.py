@@ -39,6 +39,8 @@ class Generate(entries.RememberingWindow):
         self.w3af = w3af
         vpan = entries.RememberingVPaned(w3af, "pane-passwordgenerator")
 
+        frameup = gtk.Frame(label="Password Generator - Conditions")
+        frameup.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         # strength hbox
         hbox_1, strength_combo = self._pass_strength()
 
@@ -52,24 +54,31 @@ class Generate(entries.RememberingWindow):
         generate_btn = entries.SemiStockButton(
             "Generate", gtk.STOCK_EXECUTE, _("Generate random password"))
         # lower box
-        sw = gtk.ScrolledWindow()
-        sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.panedn = gtk.TextView()
+        self.panedn.set_editable(False)
+
+        framedn = gtk.Frame(label="Generated Password")
+        framedn.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        framedn.add(self.panedn)
 
         generate_btn.connect("clicked", self._genpass, strength_combo,\
                              include_symbols, include_numbers, self.panedn)
 
+        btn_hbox = self._hbox_helper()
+        btn_hbox.pack_start(generate_btn, False, False)
+
+        conditions_box = gtk.VBox()
+        conditions_box.pack_start(hbox_1, False, False, padding=5)
+        conditions_box.pack_start(hbox_2, False, False, padding=5)
+        conditions_box.pack_start(hbox_3, False, False, padding=5)
+        conditions_box.pack_end(btn_hbox, False, False, padding=5)
+
+        frameup.add(conditions_box)
+
         vbox = gtk.VBox()
-        vbox.pack_start(hbox_1)
-        vbox.pack_start(hbox_2)
-        vbox.pack_start(hbox_3)
-        vbox.pack_start(generate_btn, False, False)
-
+        vbox.pack_start(frameup, False, False, padding=10)
+        vbox.pack_end(framedn, False, False, padding=10)
         vpan.pack1(vbox)
-
-        sw.add(self.panedn)
-        vpan.pack2(sw)
 
         self.vbox.pack_start(vpan, padding=10)
         self.show_all()
@@ -119,7 +128,7 @@ class Generate(entries.RememberingWindow):
     def _hbox_helper(self):
         hbox = gtk.HBox()
         hbox.set_homogeneous(True)
-        hbox.set_spacing(30)
+        #hbox.set_spacing(30)
         return hbox
 
     def _genpass(self, widg, combo, symbols, numbers, panedn):
