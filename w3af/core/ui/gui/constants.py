@@ -53,6 +53,7 @@ UI_MENU = """
       <menuitem action="ExportRequest"/>
       <menuitem action="Compare"/>
       <menuitem action="Proxy"/>
+      <menuitem action="PasswordGenerator"/>
     </menu>
     <menu action="ConfigurationMenu">
       <menuitem action="URLconfig"/>
@@ -83,6 +84,7 @@ UI_MENU = """
     <toolitem action="ExportRequest"/>
     <toolitem action="Compare"/>
     <toolitem action="Proxy"/>
+    <toolitem action="PasswordGenerator"/>
   </toolbar>
 </ui>
 """
